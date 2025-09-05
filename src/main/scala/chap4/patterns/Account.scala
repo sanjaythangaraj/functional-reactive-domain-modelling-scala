@@ -1,6 +1,7 @@
 package chap4.patterns
 
 import java.util.{Date, Calendar}
+import scala.util.{Try, Success, Failure}
 
 sealed trait Currency
 case object USD extends Currency
@@ -253,6 +254,36 @@ object Account {
     }
   }
 
+}
+
+
+import scalaz._
+import Scalaz._
+
+object AccountNumberGeneration {
+  trait Repository[A, IdType] {
+    def query(id: IdType): Try[Option[A]]
+    def store(a: A): Try[A]
+  }
+
+  trait AccountRepository extends Repository[Account, String] {
+    override def query(id: String): Try[Option[Account]]
+    override def store(a: Account): Try[Account]
+  }
+
+  final class Generator(rep: AccountRepository) {
+    val no: String = scala.util.Random.nextString(10)
+    def exists: Boolean = rep.query(no) match {
+      case Success(Some(a)) => true
+      case _ => false
+    }
+  }
+
+  def generate(start: Generator, r: AccountRepository): Generator = {
+    val MonadState: MonadState[State[Generator, ?], Generator] = StateT.stateMonad[Generator]
+    import MonadState._
+    whileM_(gets(_.exists), modify(_ => new Generator(r))).exec(start)
+  }
 }
 
 
