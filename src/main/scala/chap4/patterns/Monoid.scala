@@ -21,7 +21,7 @@ object Monoid {
       case (acc, (key, value)) =>
         acc.get(key)
           .map(v => acc + (key -> Monoid[V].op(value, v)))
-          .getOrElse(acc + (key, value))
+          .getOrElse(acc + (key -> value))
     }
   }
 
