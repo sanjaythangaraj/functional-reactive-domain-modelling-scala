@@ -64,4 +64,48 @@ object App extends App {
   } yield c
 
   println(e) // OptionT(-\/(error))
+
+  /* Using EitherT with Future */
+
+  import scala.concurrent.Future
+  import scala.concurrent.ExecutionContext.Implicits.global
+  import scala.concurrent.Await
+  import scala.concurrent.duration.DurationInt
+
+  type Response2[A] = EitherT[Future, String, A]
+
+  val count6: Response2[Int] = EitherT {
+    Future.successful(10.right[String])
+  }
+
+  val f = for {
+    c <- count6
+  } yield c
+
+  println(Await.result(f.run, 2.seconds)) // \/-(10)
+
+  val count7: Response2[Int] = EitherT {
+    Future.successful("error".left[Int])
+  }
+
+  val g = for {
+    c <- count7
+  } yield c
+
+  println(Await.result(g.run, 2.seconds)) // \/-(10)
+
+  val count8: Response2[Int] = EitherT {
+    Future[\/[String, Int]] {
+      throw new RuntimeException("fail")
+    }
+  }
+
+  val h = for {
+    c <- count8
+  } yield c
+
+  h.run.onFailure {
+    case t: Throwable => println(t.getMessage)
+    case _ => ()
+  }
 }
